@@ -1,0 +1,106 @@
+name: Update Formula
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag from memtwig/memtwig (leave empty for latest)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      INPUT_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag and download checksums
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="$(gh release view -R memtwig/memtwig --json tagName --jq .tagName)"
+          fi
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+          echo "RELEASE_VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          curl -fsSL "https://github.com/memtwig/memtwig/releases/download/${TAG}/checksums.txt" -o /tmp/checksums.txt
+
+      - name: Generate and verify Formula/memtwig.rb
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' "$RELEASE_VERSION"
+          import pathlib, sys, textwrap
+          version = sys.argv[1]
+          sums = {}
+          for line in pathlib.Path("/tmp/checksums.txt").read_text().splitlines():
+              if not line.strip():
+                  continue
+              sha, fname = line.split()
+              sums[fname] = sha
+
+          formula = textwrap.dedent(f"""\
+            class Memtwig < Formula
+              desc "Git-native Markdown memory layer and MCP server for AI coding agents"
+              homepage "https://memtwig.com"
+              version "{version}"
+              license "Apache-2.0"
+
+              on_macos do
+                if Hardware::CPU.arm?
+                  url "https://github.com/memtwig/memtwig/releases/download/v{version}/memtwig_{version}_darwin_arm64.tar.gz"
+                  sha256 "{sums[f'memtwig_{version}_darwin_arm64.tar.gz']}"
+                end
+                if Hardware::CPU.intel?
+                  url "https://github.com/memtwig/memtwig/releases/download/v{version}/memtwig_{version}_darwin_amd64.tar.gz"
+                  sha256 "{sums[f'memtwig_{version}_darwin_amd64.tar.gz']}"
+                end
+              end
+
+              on_linux do
+                if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+                  url "https://github.com/memtwig/memtwig/releases/download/v{version}/memtwig_{version}_linux_arm64.tar.gz"
+                  sha256 "{sums[f'memtwig_{version}_linux_arm64.tar.gz']}"
+                end
+                if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
+                  url "https://github.com/memtwig/memtwig/releases/download/v{version}/memtwig_{version}_linux_amd64.tar.gz"
+                  sha256 "{sums[f'memtwig_{version}_linux_amd64.tar.gz']}"
+                end
+              end
+
+              def install
+                bin.install "memtwig"
+              end
+
+              test do
+                assert_match version.to_s, shell_output("#{{bin}}/memtwig --version")
+              end
+            end
+          """)
+          pathlib.Path("Formula").mkdir(parents=True, exist_ok=True)
+          pathlib.Path("Formula/memtwig.rb").write_text(formula)
+          PY
+          ruby -c Formula/memtwig.rb
+
+      - name: Commit and push if formula changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet Formula/memtwig.rb && [ -n "$(git ls-files Formula/memtwig.rb)" ]; then
+            echo "Formula already up to date for $RELEASE_VERSION"
+            exit 0
+          fi
+          git config user.name "Vittorio Compagno"
+          git config user.email "111849215+vittoriocompagno@users.noreply.github.com"
+          git add Formula/memtwig.rb
+          git commit -m "chore: update memtwig to $RELEASE_VERSION" --author="Vittorio Compagno <111849215+vittoriocompagno@users.noreply.github.com>"
+          git push origin main
