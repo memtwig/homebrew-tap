@@ -1,28 +1,28 @@
 class Memtwig < Formula
   desc "Git-native Markdown memory layer and MCP server for AI coding agents"
   homepage "https://memtwig.com"
-  version "1.5.1"
+  version "1.6.0"
   license "Apache-2.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/memtwig/memtwig/releases/download/v1.5.1/memtwig_1.5.1_darwin_arm64.tar.gz"
-      sha256 "f0a91ce66578d39d098e09db26e57d81c381b2e4566f7c5225bf2e96e778cbe6"
+      url "https://github.com/memtwig/memtwig/releases/download/v1.6.0/memtwig_1.6.0_darwin_arm64.tar.gz"
+      sha256 "d493a6a5aab97efedb050e9e38aa24052c43a4c147f3d873966104afa9180c10"
     end
     if Hardware::CPU.intel?
-      url "https://github.com/memtwig/memtwig/releases/download/v1.5.1/memtwig_1.5.1_darwin_amd64.tar.gz"
-      sha256 "d6c2d4e1b710c9a9bb077a0a9774dc9a9b7780da3c18bca5217fbda669c77c8f"
+      url "https://github.com/memtwig/memtwig/releases/download/v1.6.0/memtwig_1.6.0_darwin_amd64.tar.gz"
+      sha256 "1745523b07c3e53dddc3e802b9bb4328c22c2817bea1d76d0406707458761995"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/memtwig/memtwig/releases/download/v1.5.1/memtwig_1.5.1_linux_arm64.tar.gz"
-      sha256 "61e2c32bd74afb69de33a3770072e2d92620c6b0f7ebfc1030b258051251adab"
+      url "https://github.com/memtwig/memtwig/releases/download/v1.6.0/memtwig_1.6.0_linux_arm64.tar.gz"
+      sha256 "ad74ff6c61722095f50a81a18bba8400ab2abcff9be5c062c40d27899cdedea4"
     end
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/memtwig/memtwig/releases/download/v1.5.1/memtwig_1.5.1_linux_amd64.tar.gz"
-      sha256 "b0c96d996ebb7008b2e6014a44f2504c88c6ffc657c2a4164c4f53b61c0bc802"
+      url "https://github.com/memtwig/memtwig/releases/download/v1.6.0/memtwig_1.6.0_linux_amd64.tar.gz"
+      sha256 "d771eba1d75d13437f06550ee78122a0406edbffd626a24bd2b448add18c9037"
     end
   end
 
