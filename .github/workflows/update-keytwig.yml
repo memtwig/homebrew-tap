@@ -1,0 +1,111 @@
+# Install as .github/workflows/update-keytwig.yml in memtwig/homebrew-tap.
+name: Update keytwig formula
+
+on:
+  schedule:
+    - cron: "32 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag from keytwig/keytwig (defaults to the latest release)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-keytwig-formula
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      INPUT_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Generate formula from release checksums
+        run: |
+          set -euo pipefail
+          tag="$INPUT_TAG"
+          if [ -z "$tag" ]; then
+            tag="$(gh api 'repos/keytwig/keytwig/releases?per_page=100' \
+              --jq 'map(select(.draft == false and .prerelease == false)) | first | .tag_name // empty')"
+          fi
+          if [ -z "$tag" ]; then
+            echo "No stable keytwig release yet"
+            exit 0
+          fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a stable release tag in the form vX.Y.Z" >&2
+            exit 1
+          fi
+          checksums="$(mktemp)"
+          trap 'rm -f "$checksums"' EXIT
+          curl -fsSL "https://github.com/keytwig/keytwig/releases/download/$tag/checksums.txt" -o "$checksums"
+          python3 - "${tag#v}" "$checksums" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          version, checksum_file = sys.argv[1:]
+          checksums = {}
+          for line in pathlib.Path(checksum_file).read_text().splitlines():
+              if line.strip():
+                  checksum, filename = line.split()
+                  if not re.fullmatch(r"[0-9a-f]{64}", checksum) or filename in checksums:
+                      raise SystemExit(f"Invalid or duplicate checksum for {filename}")
+                  checksums[filename] = checksum
+
+          base = f"https://github.com/keytwig/keytwig/releases/download/v{version}"
+          lines = [
+              "class Keytwig < Formula",
+              '  desc "Local encrypted vault for agent secrets"',
+              '  homepage "https://github.com/keytwig/keytwig"',
+              f'  version "{version}"',
+              '  license "Apache-2.0"',
+          ]
+          for target, platform in (("darwin", "macos"), ("linux", "linux")):
+              lines += ["", f"  on_{platform} do"]
+              for cpu, arch in (("arm", "arm64"), ("intel", "amd64")):
+                  filename = f"keytwig_{version}_{target}_{arch}.tar.gz"
+                  lines += [
+                      f"    if Hardware::CPU.{cpu}? && Hardware::CPU.is_64_bit?",
+                      f'      url "{base}/{filename}"',
+                      f'      sha256 "{checksums[filename]}"',
+                      "    end",
+                  ]
+              lines += ["  end"]
+          lines += [
+              "",
+              "  def install",
+              '    bin.install "keytwig"',
+              "  end",
+              "",
+              "  test do",
+              '    assert_match version.to_s, shell_output("#{bin}/keytwig version")',
+              "  end",
+              "end",
+          ]
+          formula = pathlib.Path("Formula/keytwig.rb")
+          formula.parent.mkdir(exist_ok=True)
+          formula.write_text("\n".join(lines) + "\n")
+          PY
+          ruby -c Formula/keytwig.rb
+
+      - name: Update the tap
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain -- Formula/keytwig.rb)" ]; then
+            echo "Formula already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/keytwig.rb
+          git commit -m "chore: update keytwig formula"
+          git push origin HEAD:main
