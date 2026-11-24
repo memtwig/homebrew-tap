@@ -1,28 +1,28 @@
 class Keytwig < Formula
   desc "Local encrypted vault for agent secrets"
   homepage "https://github.com/keytwig/keytwig"
-  version "0.1.0"
+  version "0.2.0"
   license "Apache-2.0"
 
   on_macos do
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/keytwig/keytwig/releases/download/v0.1.0/keytwig_0.1.0_darwin_arm64.tar.gz"
-      sha256 "b4614daf81b8fce6d141b31506093275892865adfd445da5e72fe6e2ba49c839"
+      url "https://github.com/keytwig/keytwig/releases/download/v0.2.0/keytwig_0.2.0_darwin_arm64.tar.gz"
+      sha256 "7f557d91c3589b611e37f21a3e3c13ec52af9efbe5570650385b5b2ec2a2ed22"
     end
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/keytwig/keytwig/releases/download/v0.1.0/keytwig_0.1.0_darwin_amd64.tar.gz"
-      sha256 "2d9c50507c715c0ede53f1fd8ff7070d07b458db924ceefee7d28d0c97ff3915"
+      url "https://github.com/keytwig/keytwig/releases/download/v0.2.0/keytwig_0.2.0_darwin_amd64.tar.gz"
+      sha256 "c728128829dd9b00014d664fdd8e15ab8bd9c297cdabe92c8ef43e2a00bbccc2"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/keytwig/keytwig/releases/download/v0.1.0/keytwig_0.1.0_linux_arm64.tar.gz"
-      sha256 "2b1f132961f90e40049437cf0bce47a068c62f8bc56226564d41ddfd6dd29093"
+      url "https://github.com/keytwig/keytwig/releases/download/v0.2.0/keytwig_0.2.0_linux_arm64.tar.gz"
+      sha256 "5df6ce2d7f03e5228a9984e819051dfde4a0428dce1f16436952d36d900de108"
     end
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/keytwig/keytwig/releases/download/v0.1.0/keytwig_0.1.0_linux_amd64.tar.gz"
-      sha256 "9ea93bd8ec116654205c5a924ebd2a88cdb19dd068a953ce2aba0e7ccccab604"
+      url "https://github.com/keytwig/keytwig/releases/download/v0.2.0/keytwig_0.2.0_linux_amd64.tar.gz"
+      sha256 "7bba86798e7e3d1d849c66456a962b0c5df1c1022db01e517e730998903d7c01"
     end
   end
 
